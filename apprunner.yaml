@@ -1,0 +1,20 @@
+version: 1.0
+runtime: python3
+build:
+  commands:
+    build:
+      - echo "Installing dependencies..."
+      - pip install -r requirements.txt
+run:
+  runtime-version: 3.11
+  command: python3 chatbot_backend.py
+  network:
+    port: 5000
+    env: PORT
+  env:
+    - name: PORT
+      value: "5000"
+    - name: Q_BUSINESS_APPLICATION_ID
+      value: "your-app-id-here"
+    - name: AWS_REGION
+      value: "us-east-1"
