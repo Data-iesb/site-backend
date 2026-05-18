@@ -1,0 +1,67 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Trino query API for Chart.js dashboards at lambda.dataiesb.com/trino
+
+Globals:
+  Function:
+    Timeout: 480
+    Runtime: python3.12
+
+Resources:
+  TrinoFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: trino-api
+      CodeUri: src/
+      Handler: app.lambda_handler
+      MemorySize: 3008
+      EphemeralStorage:
+        Size: 5120
+      FunctionUrlConfig:
+        AuthType: NONE
+        Cors:
+          AllowMethods:
+            - POST
+          AllowHeaders:
+            - Content-Type
+          AllowOrigins:
+            - "*"
+      Policies:
+        - SSMParameterReadPolicy:
+            ParameterName: trino/aurya-password
+        - SSMParameterReadPolicy:
+            ParameterName: trino-api/password
+      Events:
+        Query:
+          Type: Api
+          Properties:
+            RestApiId: !Ref LambdaApi
+            Path: /trino
+            Method: post
+        Options:
+          Type: Api
+          Properties:
+            RestApiId: !Ref LambdaApi
+            Path: /trino
+            Method: options
+
+  LambdaApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      StageName: prod
+      Cors:
+        AllowMethods: "'POST,OPTIONS'"
+        AllowHeaders: "'Content-Type'"
+        AllowOrigin: "'*'"
+      Domain:
+        DomainName: lambda.dataiesb.com
+        CertificateArn: arn:aws:acm:us-east-1:248189947068:certificate/6d8e0740-fa40-4171-aff9-7cd815b6e2e8
+        Route53:
+          HostedZoneId: Z05014761ROYBA3Z5YKY2
+
+Outputs:
+  ApiUrl:
+    Value: https://lambda.dataiesb.com/trino
+  FunctionUrl:
+    Value: !GetAtt TrinoFunctionUrl.FunctionUrl
+    Description: Direct Function URL for long queries (no 29s limit)
