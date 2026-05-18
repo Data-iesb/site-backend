@@ -15,13 +15,23 @@ Função Lambda que consulta o Trino (catálogos s3/postgres) e retorna JSON par
 {
   "catalog": "s3",
   "schema": "gold",
-  "sql": "SELECT category, COUNT(*) as total FROM products GROUP BY category"
+  "sql": "SELECT category, COUNT(*) as total FROM products GROUP BY category",
+  "password": "***"
 }
 ```
 
 - `catalog` — `s3` ou `postgres` (apenas esses são permitidos)
 - `schema` — nome do schema alvo
 - `sql` — query SQL do Trino
+- `password` — senha da API (obrigatória, armazenada no SSM `/trino-api/password`)
+
+## Autenticação
+
+A API exige um campo `password` no body da requisição. Sem ele, retorna `401 unauthorized`.
+
+A senha está armazenada em:
+- **Secrets Manager:** `trino-api/password`
+- **SSM:** `/trino-api/password` (SecureString, lida pela Lambda em runtime)
 
 ## Resposta
 
@@ -55,7 +65,8 @@ const res = await fetch('https://lambda.dataiesb.com/trino', {
   body: JSON.stringify({
     catalog: 's3',
     schema: 'gold',
-    sql: 'SELECT uf, COUNT(*) as total FROM educacao_basica GROUP BY uf ORDER BY total DESC LIMIT 10'
+    sql: 'SELECT uf, COUNT(*) as total FROM educacao_basica GROUP BY uf ORDER BY total DESC LIMIT 10',
+    password: '***'
   })
 });
 const { data } = await res.json();
@@ -74,8 +85,9 @@ const chart = new Chart(ctx, {
 - **Stack:** `trino-api` (SAM/CloudFormation)
 - **Lambda:** `trino-api` (Python 3.12, 3008MB RAM, 5GB ephemeral, 8min timeout)
 - **Domínio:** `lambda.dataiesb.com` (certificado wildcard `*.dataiesb.com`)
-- **Autenticação:** Usuário Trino `aurya` (somente leitura, catálogos s3/postgres)
-- **Senha:** SSM `/trino/aurya-password` (SecureString)
+- **Conexão Trino:** Usuário `aurya` (somente leitura, catálogos s3/postgres)
+- **Senha Trino:** SSM `/trino/aurya-password` (SecureString)
+- **Senha API:** SSM `/trino-api/password` + Secrets Manager `trino-api/password`
 
 ## Deploy
 
